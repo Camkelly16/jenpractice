@@ -1,7 +1,7 @@
 pipeline {
     agent any
     tools {
-        maven 'Maven'
+        maven 'maven'
     }
     parameters {
         booleanParam(name: 'SKIP_TESTS', defaultValue: false, description: 'Skip running the test suite')
@@ -15,7 +15,7 @@ pipeline {
         }
         stage('Build') {
             steps {
-                sh 'mvn -B clean package -DskipTests=${params.SKIP_TESTS}'
+                sh "mvn -B clean package -DskipTests=${params.SKIP_TESTS}"
             }
         }
         stage('Test & Analysis') {
