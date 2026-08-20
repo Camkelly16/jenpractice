@@ -1,7 +1,7 @@
 pipeline {
     agent any
     tools {
-        maven 'Maven'
+        maven 'maven'
     }
     parameters {
         booleanParam(name: 'SKIP_TESTS', defaultValue: false, description: 'Skip running the test suite')
