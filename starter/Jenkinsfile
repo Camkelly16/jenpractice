@@ -1,8 +1,12 @@
 pipeline {
-    tools{
-        maven "maven"
-    }
     agent any
+    tools {
+        maven 'Maven'
+    }
+    parameters {
+        booleanParam(name: 'SKIP_TESTS', defaultValue: false, description: 'Skip running the test suite')
+        choice(name: 'ENVIRONMENT', choices: ['dev', 'staging', 'prod'], description: 'Which environment this build is for')
+    }
     stages {
         stage('Checkout') {
             steps {
@@ -11,26 +15,42 @@ pipeline {
         }
         stage('Build') {
             steps {
-                dir('starter') {
-                    sh 'mvn -B clean package'
+                sh 'mvn -B clean package'
+            }
+        }
+        stage('Test & Analysis') {
+            parallel {
+                stage('Test & Coverage') {
+                    when {
+                        expression { return !params.SKIP_TESTS }
+                    }
+                    steps {
+                        sh 'mvn -B test'
+                    }
+                    post {
+                        always {
+                            junit 'target/test-reports/*.xml'
+                            archiveArtifacts artifacts: 'target/site/jacoco/**', allowEmptyArchive: true
+                        }
+                    }
+                }
+                stage('Static Analysis') {
+                    steps {
+                        sh 'mvn -B checkstyle:check'
+                    }
                 }
             }
         }
-        stage('Test') {
+        stage('Approve Release') {
             steps {
-                dir('starter') {
-                    sh 'mvn -B test'
-                }
-            }
-            post {
-                always {
-                    junit 'starter/target/surefire-reports/*.xml'
+                timeout(time: 15, unit: 'MINUTES') {
+                    input message: "Deploy build to ${params.ENVIRONMENT}?", ok: 'Proceed'
                 }
             }
         }
         stage('Archive') {
             steps {
-                archiveArtifacts artifacts: 'starter/target/*.jar', fingerprint: true
+                archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
             }
         }
     }
